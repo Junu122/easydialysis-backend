@@ -132,8 +132,9 @@ const logout=async(req,res)=>{
 const allDialysisCenter=async(req,res)=>{
 
     try {
-        const dialysisCenters=await  DialysisCenterModel.find()
-        res.json({success:true,data:dialysisCenters,message:"details fetched succesfully"})
+        const dialysisCenters=await  DialysisCenterModel.find({Status:"active"});
+
+        res.json({success:true,dialysisCenters,message:"details fetched succesfully"})
         console.log(dialysisCenters)
     } catch (error) {
         console.log(error)
@@ -142,6 +143,7 @@ const allDialysisCenter=async(req,res)=>{
 
 
 const makePayment=async(req,res)=>{
+    const userid=req.userid
     const stripe=new Stripe(process.env.STRIPE_SECRET)
     try {
         const data=req.body;
@@ -155,9 +157,9 @@ const makePayment=async(req,res)=>{
                     price_data: {
                         currency: "usd",
                         product_data: {
-                            name: data.centerName, 
+                            name: data.CenterName, 
                         },
-                        unit_amount: Math.round(data.price * 100), 
+                        unit_amount: Math.round(data.price ), 
                     },
                     quantity: 1, 
                 }
@@ -170,6 +172,7 @@ const makePayment=async(req,res)=>{
                 dialysisCenterId:data.centerId,
                 appointmentDate:data.date,
                 appoinmentTime:data.time,
+                userId:userid
               },
         })
 
@@ -189,16 +192,20 @@ const savePayment=async(req,res)=>{
         const event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
         if (event.type === "checkout.session.completed"){
             const session = event.data.object;
-            console.log("session in save payment-----------  ;",session.metadata.appoinmentTime)
+            console.log("session in save payment-----------  ;",session)
 
             const newBooking=new bookingModel({
                 dialysisCenterId:session.metadata.dialysisCenterId,
                 appoinmentDate:new Date(session.metadata.appointmentDate),
                 appoinmentTime:session.metadata.appoinmentTime,
-                userId:'6787793545f9833961f0a29b',
+                userId:session.metadata.userId,
                 paymentStatus:"success",
                 bookingStatus:"pending",
                 paymentAmount:session.amount_total,
+                stripePaymentId:session.id,
+                paymentTime:new Date(),
+                
+                
             })
 
             await newBooking.save()
@@ -212,6 +219,65 @@ const savePayment=async(req,res)=>{
     }
 }
 
+const getBookingDetails=async(req,res)=>{
+    const {session_id}=req.query;
+    console.log("session_id  :",  session_id)
+    try {
+        const BookingData=await bookingModel.find({stripePaymentId:session_id}).populate("dialysisCenterId")
+        if(!BookingData){
+            return res.json({success:false,message:"no booking data found"})
+        }
+        return res.json({success:true,message:"booking data found",BookingData})
+    } catch (error) {
+        console.log(error)
+    }
+    return res.json({session_id})
+}
+
+const myBookings=async(req,res)=>{
+    const userid=req.userid;
+    try {
+        const myBookingData=await bookingModel.find({userId:userid}).populate('dialysisCenterId')
+
+        console.log(myBookingData,"my booking data")
+        if(!myBookingData || myBookingData.length==0){
+            return res.json({success:false,message:"no booking data found"})
+        }
+        const formattedBookings = myBookingData.map(booking => ({
+            ...booking.toObject(), 
+            appoinmentDate: booking.appoinmentDate.toISOString().split("T")[0] // Extract only YYYY-MM-DD
+        }));
+        console.log(formattedBookings)
+        return res.json({success:true,myBookingData:formattedBookings})
+    } catch (error) {
+        
+    }
+}
+const cancelBooking=async(req,res)=>{
+    try {
+        const userid=req.userid;
+        const {appoinmentId}=req.body
+        const appoinmentData=await bookingModel.findById(appoinmentId);
+        if(!appoinmentData){
+            return res.json({success:false,message:"no appoinment found"})
+        }
+        if(appoinmentData.userId.toString() !== userid.toString()){
+            return res.json({success:false,message:"not authorized"})
+        }
+        const updatedAppointment = await bookingModel.findByIdAndUpdate(
+            appoinmentId,
+            { 
+              bookingStatus: 'cancelled', 
+              appoinmentCancel: true,
+              cancelledAt: new Date() // Adding timestamp of when it was cancelled
+            },
+            { new: true } // Returns the updated document
+          );
+          return res.json({success:true,message:"appoinment cancelled succesfully",updatedAppointment})
+    } catch (error) {
+        console.log(error)
+    }
+}
 
 
 
@@ -220,4 +286,5 @@ const savePayment=async(req,res)=>{
 
 
 
-export {register,Login,refreshAccessToken,getUserdata,logout,allDialysisCenter,makePayment,savePayment}
+
+export {register,Login,refreshAccessToken,getUserdata,logout,allDialysisCenter,makePayment,savePayment,getBookingDetails,myBookings,cancelBooking}

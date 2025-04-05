@@ -1,38 +1,42 @@
 import { DialysisCenterModel } from "../models/ADMIN/dialysisCenterModel.js";
 import { AdminUserModel } from "../models/ADMIN/adminModel.js";
-
+import { bookingModel } from "../models/USER/bookingModel.js";
+import {userModel} from '../models/USER/userModel.js'
 import bcrypt from 'bcrypt'
 import jwt from "jsonwebtoken"
 
 
 const generateAccessToken=(user)=>{
-    return jwt.sign({id:user._id},process.env.access_token_secret,{expiresIn:"50m"})
+    return jwt.sign({id:user._id},process.env.access_token_secret,{expiresIn:"24h"})
 };
 
 
 const addDialysisCenter=async(req,res)=>{
     const userid=req.userid;
   
-    const {name,places,city,phone,specialities,photo}=req.body;
-    console.log(name,places,city,phone,specialities,photo)
-    if(!name || !places || !city || !phone || !specialities || !photo){
+    const {CenterName,CenterAddress,CenterCity,ContactNumber,Services,Facilities,DialysisCharge,Slots,Photo}=req.body;
+
+    if(!CenterName || !CenterAddress || !CenterCity || !ContactNumber || !Services || !Facilities || !DialysisCharge || !Slots || !Photo){
         return res.json({success:false,message:"all fields are required"})
     }
     
     
-  console.log(photo,"photo")
+ 
     const newDialysisCenter=new DialysisCenterModel({
-        name,
-        places,
-        city,
-        phone,
-        specialities,
-        photo
+        CenterName,
+        CenterAddress,
+        CenterCity,
+        ContactNumber,
+        Services,
+        Facilities,
+        DialysisCharge,
+        Slots,
+        Photo
     })
-
+   
     await newDialysisCenter.save()
-
-    return res.json({success:true,message:"added succesfully",userid:userid})
+    const alldialysiscenters=await DialysisCenterModel.find({})
+    return res.json({success:true,message:"added succesfully",userid:userid,alldialysiscenters})
 }
 
 const adminLogin=async(req,res)=>{
@@ -59,7 +63,7 @@ const adminLogin=async(req,res)=>{
     res.cookie("adminToken", accessToken, {
         httpOnly:true,
         secure: true,
-        maxAge:  24 * 60 * 60 * 1000, 
+        maxAge:  2 * 24 * 60 * 60 * 1000, 
     });
 
     return res.json({success:true,message:"login success",token:accessToken})
@@ -117,5 +121,86 @@ const updateCenter=async(req,res)=>{
     }
 }
 
+const getAppoinments=async(req,res)=>{
+    const adminId=req.adminId
 
-export {addDialysisCenter,adminLogin,adminLogout,getAdmin,updateCenter}
+    try {
+        const Appoinments=await bookingModel.find({}).populate("userId").populate('dialysisCenterId')
+        if(!Appoinments){
+           return res.json({success:false,message:"no appoinments found"})
+        }
+         return res.json({success:true,message:"appoinments found",Appoinments})
+    } catch (error) {
+        
+    }
+}
+
+
+const deleteCenter=async(req,res)=>{
+    const centerid=req.params.id;
+    try {
+        const result=await DialysisCenterModel.findByIdAndDelete(centerid);
+        if(!result){
+            return res.json({success:false,message:"not found"})
+        }
+        return res.json({success:true,message:"deleted succesfully",result})
+    } catch (error) {
+        return res.json({success:false,error})
+    }
+}
+
+const updateAppoinment=async(req,res)=>{
+    const appoinmentid=req.params.id;
+    
+    try{
+        const data=req.body;
+      const   updatedAppoinment=await bookingModel.findByIdAndUpdate(appoinmentid,data, {new: true, runValidators: true, })
+      return res.json({success:true,message:"updated succesfully",updatedAppoinment})
+    }catch(error){
+      console.log(error)
+    }
+}
+
+
+const getUsers=async(req,res)=>{
+    const adminId=req.adminId;
+    try {
+        const Users=await userModel.find({});
+        if(!Users){
+            return res.json({success:false,message:"no user detected"})
+        }
+        return res.json({success:true,message:"users found",Users})
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+const updateUser=async(req,res)=>{
+    const adminId=req.adminId;
+    const userid=req.params.id;
+    try {
+        const data=req.body;
+        const updateData=await userModel.findByIdAndUpdate(userid,data,{new: true, runValidators: true, })
+        if(!updateData){
+            return res.json({success:false,message:"no user found"})
+        }
+        return res.json({succces:true,message:"updated succesfully",updateData})
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+const allDialysisCenter=async(req,res)=>{
+    const adminId=req.adminId;
+    try {
+        const dialysisCenters=await  DialysisCenterModel.find({});
+
+        res.json({success:true,dialysisCenters,message:"details fetched succesfully"})
+        console.log(dialysisCenters)
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+
+export {addDialysisCenter,adminLogin,adminLogout,getAdmin,updateCenter,getAppoinments,deleteCenter,updateAppoinment,getUsers,updateUser,allDialysisCenter}

@@ -1,32 +1,53 @@
 import mongoose from "mongoose";
 
 const dialysisCenterSchema=new mongoose.Schema({
-    name:{
+  
+    
+    CenterName:{
         type:String,
         required:true
     },
-    places:{
+    CenterAddress:{
         type:String,
         required:true,
         
     },
-    city:{
+    CenterCity:{
         type:String,
         required:true
     },
-    phone:{
+    ContactNumber:{
         type:String,
         default:null
     },
-    specialities:{
-        type:String,
+    Services:{
+        type:[String],
         required:true
     },
-    photo:{
+    Facilities:{
+        type:[String],
+        required:true,
+       
+    },
+    DialysisCharge:{
         type:String,
         required:true,
        
-    }
+    },
+    Slots:{
+        type:String,
+        required:true,
+       
+    },
+    Photo:{
+        type:String,
+        required:true,
+       
+    },
+    Status:{
+        type:String,
+        default:"active"
+    },
    
 })
 

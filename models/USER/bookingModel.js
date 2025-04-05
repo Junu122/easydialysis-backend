@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 const bookingSchema=new mongoose.Schema({
     dialysisCenterId:{
         type:mongoose.Schema.Types.ObjectId,
+        ref:'DialysisCenters',
         required:true
     },
     appoinmentDate:{
@@ -16,6 +17,7 @@ const bookingSchema=new mongoose.Schema({
     },
     userId:{
         type:mongoose.Schema.Types.ObjectId,
+        ref:'users',
         default:true
     },
     paymentStatus:{
@@ -33,6 +35,18 @@ const bookingSchema=new mongoose.Schema({
     },
     paymentTime:{ 
         type: Date, default: Date.now
+    },
+    stripePaymentId:{
+        type:String,
+        required:true
+    },
+    paymentTime:{
+        type:Date,
+        default:Date.now
+    },
+    appoinmentCancel:{
+        type:Boolean,
+        default:false
     }
 },{timestamps:true})
 
