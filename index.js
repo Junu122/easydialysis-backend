@@ -10,8 +10,9 @@ const app=express()
  
 
 app.use(cors({
-    origin: 'http://localhost:5173',
-    credentials:true
+    origin: 'https://easydialysis-frontend.vercel.app',
+    credentials:true,
+    methods: ["GET", "POST", "PUT", "DELETE"]
 }))
 app.use(cookieParser());
 
