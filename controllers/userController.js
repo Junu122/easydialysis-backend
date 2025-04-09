@@ -194,11 +194,15 @@ const googleAuth=async(req,res)=>{
             httpOnly:true,
             secure: true,
             maxAge:  24 * 60 * 60 * 1000, 
+            sameSite: "none", 
+            domain: "https://easydialysis-frontend.vercel.app",
         });
         res.cookie("accesstoken", accessToken, {
             httpOnly:true,
             secure: true,
             maxAge: 24* 60 * 60 * 1000, 
+            sameSite: "none", 
+            domain: "https://easydialysis-frontend.vercel.app",
         });
 
        return res.json({success:true,message:"authentication succesfull",user,accessToken,refreshToken})
@@ -232,11 +236,15 @@ const Login=async(req,res)=>{
             httpOnly:true,
             secure: true,
             maxAge:  24 * 60 * 60 * 1000, 
+            sameSite: "none", 
+            domain: "https://easydialysis-frontend.vercel.app"
         });
         res.cookie("accesstoken", accessToken, {
             httpOnly:true,
             secure: true,
             maxAge: 24* 60 * 60 * 1000, 
+            sameSite: "none", 
+            domain: "https://easydialysis-frontend.vercel.app"
         });
        
     
