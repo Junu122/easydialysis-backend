@@ -4,15 +4,125 @@ import { userModel } from "../models/USER/userModel.js"
 import { DialysisCenterModel } from "../models/ADMIN/dialysisCenterModel.js";
 import { bookingModel } from "../models/USER/bookingModel.js";
 import Stripe from "stripe";
+import { OAuth2Client } from "google-auth-library";
+import { OtpVerificationModel } from "../models/USER/otpVerificationModel.js";
+import nodemailer from "nodemailer"
+import crypto from "crypto"
 
 const generateAccessToken=(user)=>{
-    return jwt.sign({id:user._id},process.env.access_token_secret,{expiresIn:"2m"})
+    return jwt.sign({id:user._id},process.env.access_token_secret,{expiresIn:"20m"})
 };
 
 const generateRefreshToken=(user)=>{
     return jwt.sign({id:user._id},process.env.refresh_token_secret,{expiresIn:"24h"})
 }
 
+const generateOtp=()=>{
+    return Math.floor(100000 + Math.random() * 900000).toString()
+} 
+
+
+
+
+const client=new OAuth2Client(process.env.CLIENT_ID)
+
+
+const sendOtp=async(req,res)=>{
+    try {
+        const {email}=req.body;
+        console.log(email)
+     
+        if(!email){
+            return res.status(409).json({success:false,message:"no email found"})
+        }
+        const existUser=await userModel.findOne({email});
+        if(existUser){
+            return res.status(409).json({success:false,message:"email already exist"})
+        }
+        const otp=generateOtp();
+
+        const verificationId = crypto.randomBytes(16).toString('hex');
+        await OtpVerificationModel.findOneAndDelete({email})
+
+        const newOtpVerification=new OtpVerificationModel({
+            email,
+            otp,
+            verificationId:verificationId
+        })
+       await newOtpVerification.save()
+
+    // Set up transporter
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user:process.env.EMAIL_ID ,
+      pass: process.env.PASSWORD, 
+    },
+  });
+  
+  // Set up mail options
+  const mailOptions = {
+    from: "junaid.sheikh.1800@gmail.com",
+    to: email,
+    subject: "email verification code",
+    text:  `Your OTP code is: ${otp}`,
+    html: `
+    <div style="font-family: Arial, sans-serif; padding: 20px;">
+      <h2 style="color: #333;">Your OTP Code</h2>
+      <p style="font-size: 18px;">Use the following OTP to verify your email:</p>
+      <div style="font-size: 24px; font-weight: bold; margin: 10px 0; color: #1a73e8;">${otp}</div>
+      <p>This OTP will be valid for 10 minutes.</p>
+       <p>Do not share this OTP with anyone. If you didn't make this request, you can safely ignore this email.
+EASY DIALYSIS will never contact you about this email or ask for any login codes or links. Beware of phishing scams.</p>
+      
+      <h3>Thanks for connecting with us</h3>
+      <h2>EASY DIALYSIS</h2>
+    </div>
+  `,
+  };
+  
+  // Send email
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      console.log("Error: ", error);
+    } else {
+      console.log("Email sent: " + info.response);
+      return res.json({success:true,verificationId,info})
+    }
+  });
+    
+
+   
+      
+    } catch (error) {
+        console.log(error)
+        return error
+    }
+}
+
+
+const verifyOtp=async(req,res)=>{
+    try {
+        const {otp}=req.body;
+        const {VerificationId}=req.body
+        console.log(otp,VerificationId)
+        if(!otp){
+            return res.status(409).json({message:"otp is required"})
+        }
+
+        const otpRecord=await OtpVerificationModel.findOne({verificationId:VerificationId})
+        if(!otpRecord){
+            return res.status(404).json({success:false,message:"not found"})
+        }
+        if(otpRecord.otp !== otp){
+            return res.status(401).json({success:false,message:"incorrect otp retry again"})
+        }
+        return res.status(200).json({success:true,message:"otp verification success",otpRecord})
+
+    } catch (error) {
+        return error
+    }
+}
 
 const register=async(req,res)=>{
     const {username,email,password}=req.body;
@@ -24,7 +134,7 @@ const register=async(req,res)=>{
         const existuser=await userModel.findOne({email})
 
         if(existuser){
-            return res.json({success:false,message:"email already exist"})
+            return res.status(409).json({success:false,message:"email already exist"})
         }
 
         const hashedpassword=await bcrypt.hash(password,10)
@@ -32,7 +142,8 @@ const register=async(req,res)=>{
         const newuser= new userModel({
             username,
             password:hashedpassword,
-            email
+            email,
+            authMethord:"local"
         })
 
         await newuser.save()
@@ -40,7 +151,59 @@ const register=async(req,res)=>{
         console.log(newuser)
         return res.status(201).json({success:true,message:"user created succesfully",data:newuser})
     } catch (error) {
+        return error.response
+    }
+}
+
+const googleAuth=async(req,res)=>{
+    try {
+        const {credential}=req.body;
+
+        console.log(credential)
+        const ticket = await client.verifyIdToken({
+            idToken: credential,
+            audience: process.env.CLIENT_ID
+          });
+
+          const details=ticket.getPayload();
+          const { email, name, picture, sub } = details;
+
+          let user=await userModel.findOne({email})
+          if(!user){
+            user=new userModel({
+                username:name,
+                email,
+                googleId:sub,
+                profilePicture:picture,
+                authMethord:"google"
+            })
+           await user.save()
+          }else if(user.status===false){
+              return res.json({success:false,message:"user is blocked"})
+          }else if(!user.googleId){
+              user.googleId=sub;
+              user.authMethord=user.authMethord === 'local' ? "both" :"google";
+              user.profilePicture=picture
+              await user.save()
+          }
+
+          const accessToken=generateAccessToken(user)
+        const refreshToken=generateRefreshToken(user)
         
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly:true,
+            secure: true,
+            maxAge:  24 * 60 * 60 * 1000, 
+        });
+        res.cookie("accesstoken", accessToken, {
+            httpOnly:true,
+            secure: true,
+            maxAge: 24* 60 * 60 * 1000, 
+        });
+
+       return res.json({success:true,message:"authentication succesfull",user,accessToken,refreshToken})
+    } catch (error) {
+        console.log(error)
     }
 }
 
@@ -52,7 +215,9 @@ const Login=async(req,res)=>{
         if(!existuser){
             return res.json({success:false,usererror:"no user exist"})
         }
-    
+        if(existuser.authMethord=='google'){
+            return res.json({success:false,message:"user already signed in using google",googleUser:true})
+        }
         const ispasswordmatch=await bcrypt.compare(password,existuser.password)
         console.log(ispasswordmatch,"password is match")
         if(!ispasswordmatch){
@@ -78,7 +243,7 @@ const Login=async(req,res)=>{
          
         return res.json({success:true,message:"login success",user:existuser,accessToken,refreshToken})
     } catch (error) {
-        res.status(500).json({success:false,message:error})
+       return error
     }
    
 }
@@ -106,7 +271,7 @@ const refreshAccessToken=async(req,res)=>{
   return  res.status(201).json({success:true,accesstoken:newaccesstoken})
    } catch (error) {
     
-   return res.status(401).json({success:false,error})
+
    }
 }
 
@@ -287,4 +452,4 @@ const cancelBooking=async(req,res)=>{
 
 
 
-export {register,Login,refreshAccessToken,getUserdata,logout,allDialysisCenter,makePayment,savePayment,getBookingDetails,myBookings,cancelBooking}
+export {register,Login,refreshAccessToken,getUserdata,logout,allDialysisCenter,makePayment,savePayment,getBookingDetails,myBookings,cancelBooking,googleAuth,sendOtp,verifyOtp}

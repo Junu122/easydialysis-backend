@@ -1,5 +1,6 @@
 import express from "express"
-import { register,Login,refreshAccessToken,getUserdata,logout,allDialysisCenter,makePayment,savePayment ,getBookingDetails,myBookings,cancelBooking} from "../../controllers/userController.js"
+import { register,Login,refreshAccessToken,getUserdata,logout,allDialysisCenter,makePayment,
+    savePayment ,getBookingDetails,myBookings,cancelBooking,googleAuth,sendOtp,verifyOtp} from "../../controllers/userController.js"
 import { VerifyAccessToken } from "../../middlewares/authMidlleware.js"
 
 
@@ -17,5 +18,7 @@ userrouter.post('/stripe-webhook',express.raw({ type: "application/json" }),save
 userrouter.get('/booking-details',getBookingDetails)
 userrouter.get('/my-bookings',VerifyAccessToken,myBookings)
 userrouter.put('/cancel-booking',VerifyAccessToken,cancelBooking)
-
+userrouter.post('/google-auth',googleAuth)
+userrouter.post('/send-otp',sendOtp)
+userrouter.post('/verify-otp',verifyOtp)
 export default userrouter
