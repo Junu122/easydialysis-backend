@@ -195,14 +195,14 @@ const googleAuth=async(req,res)=>{
             secure: true,
             maxAge:  24 * 60 * 60 * 1000, 
             sameSite: "none", 
-            domain: "easydialysis-frontend.vercel.app",
+            // domain: "easydialysis-frontend.vercel.app",
         });
         res.cookie("accesstoken", accessToken, {
             httpOnly:true,
             secure: true,
             maxAge: 24* 60 * 60 * 1000, 
             sameSite: "none", 
-            domain: "easydialysis-frontend.vercel.app",
+            // domain: "easydialysis-frontend.vercel.app",
         });
 
        return res.json({success:true,message:"authentication succesfull",user,accessToken,refreshToken})
@@ -213,6 +213,7 @@ const googleAuth=async(req,res)=>{
 
 const Login=async(req,res)=>{
     const {email,password}=req.body;
+    console.log(email,password)
     try {
         const existuser=await userModel.findOne({email})
         console.log(existuser,"existuser in backend")
@@ -231,20 +232,20 @@ const Login=async(req,res)=>{
        
         const accessToken=generateAccessToken(existuser)
         const refreshToken=generateRefreshToken(existuser)
-        
+        res.header('Access-Control-Allow-Credentials', 'true');
         res.cookie("refreshToken", refreshToken, {
             httpOnly:true,
             secure: true,
             maxAge:  24 * 60 * 60 * 1000, 
             sameSite: "none", 
-            domain: "https://easydialysis-frontend.vercel.app"
+            // domain: "easydialysis-frontend.vercel.app"
         });
         res.cookie("accesstoken", accessToken, {
             httpOnly:true,
             secure: true,
             maxAge: 24* 60 * 60 * 1000, 
             sameSite: "none", 
-            domain: "https://easydialysis-frontend.vercel.app"
+            // domain: "easydialysis-frontend.vercel.app"
         });
        
     
