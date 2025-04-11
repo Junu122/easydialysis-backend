@@ -36,8 +36,8 @@ app.set('view engine', 'ejs')
 
 DBconnection()
 
-app.use('/api/auth',userrouter)
-app.use('/api/admin',adminRouter)
+app.use('/auth',userrouter)
+app.use('/admin',adminRouter)
 
 
 
