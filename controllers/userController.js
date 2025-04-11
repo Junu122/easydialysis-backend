@@ -194,15 +194,15 @@ const googleAuth=async(req,res)=>{
             httpOnly:true,
             secure: true,
             maxAge:  24 * 60 * 60 * 1000, 
-            sameSite: "none", 
-            // domain: "easydialysis-frontend.vercel.app",
+            sameSite: "strict", 
+            domain: ".easydialysis.shop"
         });
         res.cookie("accesstoken", accessToken, {
             httpOnly:true,
             secure: true,
             maxAge: 24* 60 * 60 * 1000, 
-            sameSite: "none", 
-            // domain: "easydialysis-frontend.vercel.app",
+            sameSite: "strict", 
+            domain: ".easydialysis.shop",
         });
 
        return res.json({success:true,message:"authentication succesfull",user,accessToken,refreshToken})
@@ -237,15 +237,15 @@ const Login=async(req,res)=>{
             httpOnly:true,
             secure: true,
             maxAge:  24 * 60 * 60 * 1000, 
-            sameSite: "none", 
-            // domain: "easydialysis-frontend.vercel.app"
+            sameSite: "strict", 
+            domain: ".easydialysis.shop"
         });
         res.cookie("accesstoken", accessToken, {
             httpOnly:true,
             secure: true,
             maxAge: 24* 60 * 60 * 1000, 
-            sameSite: "none", 
-            // domain: "easydialysis-frontend.vercel.app"
+            sameSite: "strict", 
+            domain: ".easydialysis.shop",
         });
        
     
@@ -276,6 +276,7 @@ const refreshAccessToken=async(req,res)=>{
         httpOnly:true,
         secure: true,
         maxAge: 24*60 * 60 * 1000, 
+        domain: ".easydialysis.shop"
     });
   return  res.status(201).json({success:true,accesstoken:newaccesstoken})
    } catch (error) {
@@ -297,8 +298,18 @@ const getUserdata=async(req,res)=>{
 }
 
 const logout=async(req,res)=>{
-    res.clearCookie("refreshToken")
-    res.clearCookie('accessToken')
+    res.clearCookie("refreshToken"  ,{
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict',
+        domain: '.easydialysis.shop'
+    } )
+    res.clearCookie('accessToken',{
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict',
+        domain: '.easydialysis.shop'
+    })
     res.json({success:true,message:"logout success"})
 }
 
