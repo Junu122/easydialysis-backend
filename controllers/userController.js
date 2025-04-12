@@ -375,6 +375,7 @@ const savePayment=async(req,res)=>{
 
     try {
         const event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+        console.log(event,"event in stripe payment")
         if (event.type === "checkout.session.completed"){
             const session = event.data.object;
             console.log("session in save payment-----------  ;",session)
@@ -394,7 +395,7 @@ const savePayment=async(req,res)=>{
             })
 
             await newBooking.save()
-
+            res.status(200).send({received: true});
             console.log("new booking  :",newBooking)
         }
 
