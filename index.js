@@ -10,7 +10,7 @@ const app=express()
 
 
 app.use(cors({
-    origin: 'https://www.easydialysis.shop',
+    origin: ['https://www.easydialysis.shop',"https://easydialysis.shop"],
     credentials:true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
