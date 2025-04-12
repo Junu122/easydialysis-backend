@@ -23,7 +23,7 @@ app.use(cookieParser());
 
 // app.use(express.json())
 app.use((req, res, next) => {
-    if (req.originalUrl === '/api/auth/stripe-webhook') {
+    if (req.originalUrl === '/auth/stripe-webhook') {
         next(); // Skip body parsing for the webhook route
     } else {
         express.json()(req, res, next); // Apply express.json() to all other routes
