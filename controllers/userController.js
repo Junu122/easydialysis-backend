@@ -350,7 +350,7 @@ const makePayment=async(req,res)=>{
                 }
             ],
             mode:"payment",
-            success_url:`http://www.easydialysis.shop/success?session_id={CHECKOUT_SESSION_ID}`,
+            success_url:`https://www.easydialysis.shop/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url:"https://dribbble.com/tags/payment-failiure",
             metadata: {
                 
